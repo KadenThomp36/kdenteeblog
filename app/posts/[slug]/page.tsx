@@ -3,8 +3,20 @@ import { db } from "@/lib/db";
 import { formatDistance } from "date-fns";
 import Image from "next/image";
 
-// Disable static generation at build time - posts will be rendered on-demand
-export const dynamic = "force-dynamic";
+export async function generateStaticParams() {
+  const posts = await db.post.findMany({
+    where: {
+      published: true,
+    },
+    select: {
+      slug: true,
+    },
+  });
+
+  return posts.map((post) => ({
+    slug: post.slug,
+  }));
+}
 
 export async function generateMetadata({
   params,
