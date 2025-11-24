@@ -143,7 +143,7 @@ export function Editor({ content, onChange }: EditorProps) {
 
           // Aperture (f-number)
           if (exifData.FNumber) {
-            parts.push(`f/${exifData.FNumber}`);
+            parts.push(`f/${Math.round(exifData.FNumber * 10) / 10}`);
           }
 
           // Shutter speed
@@ -151,18 +151,18 @@ export function Editor({ content, onChange }: EditorProps) {
             if (exifData.ExposureTime < 1) {
               parts.push(`1/${Math.round(1 / exifData.ExposureTime)}s`);
             } else {
-              parts.push(`${exifData.ExposureTime}s`);
+              parts.push(`${Math.round(exifData.ExposureTime * 100) / 100}s`);
             }
           }
 
           // ISO
           if (exifData.ISO) {
-            parts.push(`ISO ${exifData.ISO}`);
+            parts.push(`ISO ${Math.round(exifData.ISO)}`);
           }
 
           // Focal length
           if (exifData.FocalLength) {
-            parts.push(`${exifData.FocalLength}mm`);
+            parts.push(`${Math.round(exifData.FocalLength)}mm`);
           }
 
           if (parts.length > 0) {
