@@ -189,19 +189,16 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
         dom: container,
         contentDOM: null,
         ignoreMutation: (mutation) => {
-          // Ignore mutations inside the caption input to prevent updates while typing
-          if (captionInput && captionInput.contains(mutation.target)) {
-            return true;
-          }
-          return false;
+          // Ignore all mutations inside this node - we handle state manually
+          return true;
         },
         update: (updatedNode) => {
           if (updatedNode.type.name !== "imageWithCaption") {
             return false;
           }
 
-          // Update caption input value if it changed externally
-          if (captionInput && captionInput !== document.activeElement) {
+          // Only update the input if it's not currently focused
+          if (captionInput && document.activeElement !== captionInput) {
             captionInput.value = updatedNode.attrs.caption || "";
           }
 
