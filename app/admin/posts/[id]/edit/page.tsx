@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UploadButton } from "@/components/upload-button";
+import { TagInput } from "@/components/tag-input";
 
 interface Post {
   id: string;
@@ -26,6 +27,8 @@ interface Post {
   coverImage: string | null;
   published: boolean;
   collectionId: string | null;
+  eventDate: string | null;
+  tags: { id: string; name: string; slug: string }[];
 }
 
 interface Collection {
@@ -48,6 +51,8 @@ export default function EditPostPage({
   const [collectionId, setCollectionId] = useState<string>("");
   const [collections, setCollections] = useState<Collection[]>([]);
   const [published, setPublished] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const [eventDate, setEventDate] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,6 +72,12 @@ export default function EditPostPage({
           setCoverImage(post.coverImage || "");
           setCollectionId(post.collectionId || "none");
           setPublished(post.published);
+          setTags(post.tags?.map((tag) => tag.name) || []);
+          setEventDate(
+            post.eventDate
+              ? new Date(post.eventDate).toISOString().split("T")[0]
+              : "",
+          );
         } else {
           alert("Failed to load post");
           router.push("/admin/posts");
@@ -113,6 +124,8 @@ export default function EditPostPage({
           published: shouldPublish,
           collectionId:
             collectionId && collectionId !== "none" ? collectionId : null,
+          tags,
+          eventDate: eventDate || null,
         }),
       });
 
@@ -230,6 +243,28 @@ export default function EditPostPage({
               </Select>
               <p className="text-xs text-muted-foreground">
                 Group this post with other related posts
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="eventDate">Event Date (Optional)</Label>
+              <Input
+                id="eventDate"
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                When did these events actually occur? Used for chronological
+                grouping
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags</Label>
+              <TagInput tags={tags} onChange={setTags} />
+              <p className="text-xs text-muted-foreground">
+                Add tags to categorize and filter your posts
               </p>
             </div>
 

@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UploadButton } from "@/components/upload-button";
+import { TagInput } from "@/components/tag-input";
 
 interface Collection {
   id: string;
@@ -31,6 +32,8 @@ export default function NewPostPage() {
   const [coverImage, setCoverImage] = useState("");
   const [collectionId, setCollectionId] = useState<string>("");
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [eventDate, setEventDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
@@ -85,6 +88,8 @@ export default function NewPostPage() {
           coverImage,
           published,
           collectionId: collectionId || null,
+          tags,
+          eventDate: eventDate || null,
         }),
       });
 
@@ -135,6 +140,22 @@ export default function NewPostPage() {
                 placeholder="post-url-slug"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="eventDate">Event Date (Optional)</Label>
+              <Input
+                id="eventDate"
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                When did these events actually occur? Used for chronological
+                grouping.
+              </p>
+            </div>
+
+            <TagInput tags={tags} onChange={setTags} />
 
             <div className="space-y-2">
               <Label htmlFor="excerpt">Excerpt</Label>

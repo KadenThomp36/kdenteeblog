@@ -23,6 +23,8 @@ export async function POST(req: Request) {
       coverImage,
       published,
       collectionId,
+      tags,
+      eventDate,
     } = body;
 
     if (!title || !slug || !content) {
@@ -40,6 +42,22 @@ export async function POST(req: Request) {
       );
     }
 
+    // Handle tags - create or connect existing ones
+    const tagConnections =
+      tags && tags.length > 0
+        ? {
+            connectOrCreate: await Promise.all(
+              tags.map(async (tagName: string) => ({
+                where: { slug: tagName.toLowerCase().replace(/\s+/g, "-") },
+                create: {
+                  name: tagName,
+                  slug: tagName.toLowerCase().replace(/\s+/g, "-"),
+                },
+              })),
+            ),
+          }
+        : undefined;
+
     const post = await db.post.create({
       data: {
         title,
@@ -50,7 +68,12 @@ export async function POST(req: Request) {
         published: published || false,
         collectionId:
           collectionId && collectionId !== "none" ? collectionId : null,
+        eventDate: eventDate ? new Date(eventDate) : null,
         authorId: session.user.id,
+        tags: tagConnections,
+      },
+      include: {
+        tags: true,
       },
     });
 

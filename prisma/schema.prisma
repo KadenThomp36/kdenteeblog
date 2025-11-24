@@ -78,10 +78,12 @@ model Post {
   coverImage   String?
   published    Boolean     @default(false)
   order        Int         @default(0)
+  eventDate    DateTime? // When the events actually occurred
   authorId     String
   author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   collectionId String?
   collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  tags         Tag[]       @relation("PostTags")
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   images       Image[]
@@ -89,6 +91,17 @@ model Post {
   @@index([authorId])
   @@index([published])
   @@index([collectionId])
+  @@index([eventDate])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  posts     Post[]   @relation("PostTags")
+  createdAt DateTime @default(now())
+
+  @@index([slug])
 }
 
 model Image {

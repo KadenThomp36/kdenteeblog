@@ -1,11 +1,21 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatDistance } from "date-fns";
+import { formatDistance, format } from "date-fns";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, Calendar, Tag as TagIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-export default async function Home() {
+interface SearchParams {
+  tag?: string;
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const { tag: selectedTag } = await searchParams;
   // Get all published collections with their posts
   const collections = await db.collection.findMany({
     where: {
@@ -15,6 +25,13 @@ export default async function Home() {
       posts: {
         where: {
           published: true,
+          ...(selectedTag && {
+            tags: {
+              some: {
+                slug: selectedTag,
+              },
+            },
+          }),
         },
         orderBy: {
           order: "asc",
@@ -25,6 +42,7 @@ export default async function Home() {
               name: true,
             },
           },
+          tags: true,
         },
       },
       author: {
@@ -43,6 +61,13 @@ export default async function Home() {
     where: {
       published: true,
       collectionId: null,
+      ...(selectedTag && {
+        tags: {
+          some: {
+            slug: selectedTag,
+          },
+        },
+      }),
     },
     include: {
       author: {
@@ -51,9 +76,41 @@ export default async function Home() {
           image: true,
         },
       },
+      tags: true,
     },
+    orderBy: [
+      {
+        eventDate: "desc",
+      },
+      {
+        createdAt: "desc",
+      },
+    ],
+  });
+
+  // Group standalone posts by event date (year/month)
+  const groupedPosts = standalonePosts.reduce(
+    (acc, post) => {
+      const date = post.eventDate || post.createdAt;
+      const key = format(new Date(date), "yyyy-MM");
+      const displayKey = format(new Date(date), "MMMM yyyy");
+
+      if (!acc[key]) {
+        acc[key] = {
+          displayKey,
+          posts: [],
+        };
+      }
+      acc[key].posts.push(post);
+      return acc;
+    },
+    {} as Record<string, { displayKey: string; posts: typeof standalonePosts }>,
+  );
+
+  // Get all tags for filtering
+  const allTags = await db.tag.findMany({
     orderBy: {
-      createdAt: "desc",
+      name: "asc",
     },
   });
 
@@ -71,6 +128,36 @@ export default async function Home() {
             ideas, and insights.
           </p>
         </div>
+
+        {/* Tag Filter */}
+        {allTags.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <TagIcon className="h-5 w-5 text-muted-foreground" />
+              <h2 className="text-lg font-semibold">Filter by tag</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/">
+                <Badge
+                  variant={!selectedTag ? "default" : "outline"}
+                  className="cursor-pointer hover:bg-primary/80"
+                >
+                  All Posts
+                </Badge>
+              </Link>
+              {allTags.map((tag) => (
+                <Link key={tag.id} href={`/?tag=${tag.slug}`}>
+                  <Badge
+                    variant={selectedTag === tag.slug ? "default" : "outline"}
+                    className="cursor-pointer hover:bg-primary/80"
+                  >
+                    {tag.name}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-16">
           {!hasContent ? (
@@ -149,6 +236,19 @@ export default async function Home() {
                                 {post.title}
                               </CardTitle>
                             </div>
+                            {post.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {post.tags.map((tag) => (
+                                  <Badge
+                                    key={tag.id}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {tag.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </CardHeader>
                           {post.excerpt && (
                             <CardContent>
@@ -176,45 +276,96 @@ export default async function Home() {
                 </div>
               ))}
 
-              {/* Standalone Posts */}
-              {standalonePosts.length > 0 && (
-                <div className="space-y-12">
-                  {standalonePosts.map((post) => (
-                    <article key={post.id} className="group">
-                      <Link href={`/posts/${post.slug}`}>
-                        {post.coverImage && (
-                          <div className="relative w-full h-64 md:h-96 mb-6 rounded-lg overflow-hidden">
-                            <Image
-                              src={post.coverImage}
-                              alt={post.title}
-                              fill
-                              className="object-cover transition-transform group-hover:scale-105"
-                            />
-                          </div>
-                        )}
-                        <div className="space-y-3">
-                          <h2 className="text-3xl font-bold tracking-tight group-hover:text-primary transition-colors">
-                            {post.title}
-                          </h2>
-                          {post.excerpt && (
-                            <p className="text-lg text-muted-foreground leading-relaxed">
-                              {post.excerpt}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>{post.author.name}</span>
-                            <span>•</span>
-                            <time>
-                              {formatDistance(
-                                new Date(post.createdAt),
-                                new Date(),
-                                { addSuffix: true },
+              {/* Standalone Posts - Grouped by Event Date */}
+              {Object.keys(groupedPosts).length > 0 && (
+                <div className="space-y-16">
+                  {Object.entries(groupedPosts).map(([key, group]) => (
+                    <div key={key} className="space-y-8">
+                      <div className="flex items-center gap-3 border-b pb-3">
+                        <Calendar className="h-6 w-6 text-primary" />
+                        <h2 className="text-2xl font-bold tracking-tight">
+                          {group.displayKey}
+                        </h2>
+                        <span className="text-sm text-muted-foreground">
+                          ({group.posts.length}{" "}
+                          {group.posts.length === 1 ? "post" : "posts"})
+                        </span>
+                      </div>
+
+                      <div className="space-y-12">
+                        {group.posts.map((post) => (
+                          <article key={post.id} className="group">
+                            <Link href={`/posts/${post.slug}`}>
+                              {post.coverImage && (
+                                <div className="relative w-full h-64 md:h-96 mb-6 rounded-lg overflow-hidden">
+                                  <Image
+                                    src={post.coverImage}
+                                    alt={post.title}
+                                    fill
+                                    className="object-cover transition-transform group-hover:scale-105"
+                                  />
+                                </div>
                               )}
-                            </time>
-                          </div>
-                        </div>
-                      </Link>
-                    </article>
+                              <div className="space-y-3">
+                                <h3 className="text-3xl font-bold tracking-tight group-hover:text-primary transition-colors">
+                                  {post.title}
+                                </h3>
+                                {post.excerpt && (
+                                  <p className="text-lg text-muted-foreground leading-relaxed">
+                                    {post.excerpt}
+                                  </p>
+                                )}
+                                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                                  <span>{post.author.name}</span>
+                                  <span>•</span>
+                                  {post.eventDate && (
+                                    <>
+                                      <time className="flex items-center gap-1">
+                                        <Calendar className="h-3 w-3" />
+                                        {format(
+                                          new Date(post.eventDate),
+                                          "MMM d, yyyy",
+                                        )}
+                                      </time>
+                                      <span>•</span>
+                                    </>
+                                  )}
+                                  <time>
+                                    Posted{" "}
+                                    {formatDistance(
+                                      new Date(post.createdAt),
+                                      new Date(),
+                                      { addSuffix: true },
+                                    )}
+                                  </time>
+                                  {post.tags.length > 0 && (
+                                    <>
+                                      <span>•</span>
+                                      <div className="flex flex-wrap gap-1">
+                                        {post.tags.map((tag) => (
+                                          <Link
+                                            key={tag.id}
+                                            href={`/?tag=${tag.slug}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Badge
+                                              variant="secondary"
+                                              className="text-xs hover:bg-primary/20"
+                                            >
+                                              {tag.name}
+                                            </Badge>
+                                          </Link>
+                                        ))}
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </Link>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

@@ -12,6 +12,9 @@ export async function GET(
       where: {
         id,
       },
+      include: {
+        tags: true,
+      },
     });
 
     if (!post) {
@@ -53,6 +56,8 @@ export async function PATCH(
       coverImage,
       published,
       collectionId,
+      tags,
+      eventDate,
     } = body;
 
     if (!title || !slug || !content) {
@@ -70,6 +75,21 @@ export async function PATCH(
       );
     }
 
+    // Handle tags - disconnect all existing tags and reconnect with new ones
+    const tagConnections =
+      tags && tags.length > 0
+        ? {
+            set: [], // Disconnect all existing tags first
+            connectOrCreate: tags.map((tagName: string) => ({
+              where: { slug: tagName.toLowerCase().replace(/\s+/g, "-") },
+              create: {
+                name: tagName,
+                slug: tagName.toLowerCase().replace(/\s+/g, "-"),
+              },
+            })),
+          }
+        : { set: [] }; // If no tags, just clear all
+
     const post = await db.post.update({
       where: {
         id,
@@ -83,6 +103,11 @@ export async function PATCH(
         published: published || false,
         collectionId:
           collectionId && collectionId !== "none" ? collectionId : null,
+        eventDate: eventDate ? new Date(eventDate) : null,
+        tags: tagConnections,
+      },
+      include: {
+        tags: true,
       },
     });
 
