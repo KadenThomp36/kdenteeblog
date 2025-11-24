@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import {
+  format,
+  parseISO,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+} from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "lucide-react";
@@ -46,7 +52,7 @@ export function TimelineSidebar() {
 
   if (isLoading) {
     return (
-      <div className="hidden xl:block fixed right-8 top-24 w-80">
+      <div className="hidden lg:block fixed right-8 top-24 w-72">
         <Card className="p-6">
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-muted rounded w-3/4" />
@@ -62,7 +68,7 @@ export function TimelineSidebar() {
   const maxCount = Math.max(...timeline.map((m) => m.count));
 
   return (
-    <div className="hidden xl:block fixed right-8 top-24 w-80 max-h-[calc(100vh-8rem)]">
+    <div className="hidden lg:block fixed right-8 top-24 w-72 max-h-[calc(100vh-8rem)] z-40">
       <Card className="overflow-hidden backdrop-blur-sm bg-background/95 border-2">
         <div className="p-6 border-b bg-gradient-to-r from-primary/10 to-primary/5">
           <div className="flex items-center gap-2 mb-2">
@@ -78,7 +84,7 @@ export function TimelineSidebar() {
           <div className="p-4 space-y-3">
             {timeline.map((month, index) => {
               const barHeight = (month.count / maxCount) * 100;
-              const opacity = 0.3 + (month.frequency * 0.7);
+              const opacity = 0.3 + month.frequency * 0.7;
 
               return (
                 <div
