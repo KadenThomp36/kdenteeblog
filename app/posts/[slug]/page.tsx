@@ -3,20 +3,9 @@ import { db } from "@/lib/db";
 import { formatDistance } from "date-fns";
 import Image from "next/image";
 
-export async function generateStaticParams() {
-  const posts = await db.post.findMany({
-    where: {
-      published: true,
-    },
-    select: {
-      slug: true,
-    },
-  });
-
-  return posts.map((post) => ({
-    slug: post.slug,
-  }));
-}
+// Database is only accessible via Tailscale, so we use dynamic rendering
+// Posts will be fetched on-demand when users visit them
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
