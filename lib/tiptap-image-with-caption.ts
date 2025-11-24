@@ -125,9 +125,11 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
         container.appendChild(exifDiv);
       }
 
+      let captionInput: HTMLInputElement | null = null;
+
       // Caption element (editable in editor mode)
       if (editor.isEditable) {
-        const captionInput = document.createElement("input");
+        captionInput = document.createElement("input");
         captionInput.type = "text";
         captionInput.placeholder = "Add a caption...";
         captionInput.value = node.attrs.caption || "";
@@ -135,7 +137,12 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
         captionInput.style.cssText =
           "width: 100%; border: 1px solid #e5e7eb; border-radius: 0.25rem; padding: 0.5rem; margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280; font-style: italic; text-align: center; background: transparent;";
 
-        captionInput.addEventListener("input", (e) => {
+        let isUpdating = false;
+
+        captionInput.addEventListener("blur", (e) => {
+          if (isUpdating) return;
+          isUpdating = true;
+
           const pos = getPos();
           if (typeof pos === "number") {
             const target = e.target as HTMLInputElement;
@@ -143,6 +150,10 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
               caption: target.value || null,
             });
           }
+
+          setTimeout(() => {
+            isUpdating = false;
+          }, 100);
         });
 
         container.appendChild(captionInput);
@@ -176,10 +187,24 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
 
       return {
         dom: container,
+        contentDOM: null,
+        ignoreMutation: (mutation) => {
+          // Ignore mutations inside the caption input to prevent updates while typing
+          if (captionInput && captionInput.contains(mutation.target)) {
+            return true;
+          }
+          return false;
+        },
         update: (updatedNode) => {
           if (updatedNode.type.name !== "imageWithCaption") {
             return false;
           }
+
+          // Update caption input value if it changed externally
+          if (captionInput && captionInput !== document.activeElement) {
+            captionInput.value = updatedNode.attrs.caption || "";
+          }
+
           return true;
         },
       };
