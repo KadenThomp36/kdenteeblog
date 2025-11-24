@@ -269,7 +269,7 @@ export function Editor({ content, onChange }: EditorProps) {
 
   return (
     <div className="border rounded-lg overflow-hidden bg-background">
-      <div className="border-b bg-muted/30 p-2">
+      <div className="sticky top-0 z-10 border-b bg-muted/30 p-2 backdrop-blur-sm">
         <div className="flex flex-wrap gap-1">
           {/* Text formatting */}
           <div className="flex gap-1">
