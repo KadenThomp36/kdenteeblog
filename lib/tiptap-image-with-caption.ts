@@ -188,6 +188,17 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
       return {
         dom: container,
         contentDOM: null,
+        stopEvent: (event) => {
+          // Stop all events from the caption input from bubbling to the editor
+          const target = event.target as HTMLElement;
+          if (
+            captionInput &&
+            (target === captionInput || captionInput.contains(target))
+          ) {
+            return true;
+          }
+          return false;
+        },
         ignoreMutation: (mutation) => {
           // Ignore all mutations inside this node - we handle state manually
           return true;
@@ -203,6 +214,12 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
           }
 
           return true;
+        },
+        destroy: () => {
+          // Clean up
+          if (captionInput) {
+            captionInput.remove();
+          }
         },
       };
     };
