@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FolderOpen, Calendar, Tag as TagIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { TimelineSidebar } from "@/components/timeline-sidebar";
 
 interface SearchParams {
   tag?: string;
@@ -117,7 +118,8 @@ export default async function Home({
   const hasContent = collections.length > 0 || standalonePosts.length > 0;
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen relative">
+      <TimelineSidebar />
       <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="mb-16">
           <h1 className="text-5xl md:text-6xl font-bold mb-6 tracking-tight">
