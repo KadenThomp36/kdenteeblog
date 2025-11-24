@@ -37,6 +37,7 @@ import {
   CodeSquare,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import imageCompression from "browser-image-compression";
 
 const lowlight = createLowlight(common);
 
@@ -338,8 +339,19 @@ export function Editor({ content, onChange }: EditorProps) {
     setIsUploading(true);
 
     try {
+      // Compress images before uploading
+      const options = {
+        maxSizeMB: 4,
+        maxWidthOrHeight: 2048,
+        useWebWorker: true,
+      };
+
+      const compressedFiles = await Promise.all(
+        Array.from(files).map((file) => imageCompression(file, options)),
+      );
+
       const formData = new FormData();
-      files.forEach((file) => {
+      compressedFiles.forEach((file) => {
         formData.append("files", file);
       });
 
