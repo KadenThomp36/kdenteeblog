@@ -2,118 +2,143 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Editor } from "@/components/editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { UploadButton } from "@/components/upload-button";
 
 interface Collection {
   id: string;
   title: string;
+  slug: string;
+  description: string | null;
+  coverImage: string | null;
+  published: boolean;
 }
 
-export default function NewPostPage() {
+export default function EditCollectionPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
+  const [collectionId, setCollectionId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [content, setContent] = useState("");
+  const [description, setDescription] = useState("");
   const [coverImage, setCoverImage] = useState("");
-  const [collectionId, setCollectionId] = useState<string>("");
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [published, setPublished] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   useEffect(() => {
-    const fetchCollections = async () => {
+    const loadCollection = async () => {
+      const resolvedParams = await params;
+      setCollectionId(resolvedParams.id);
+
       try {
-        const response = await fetch("/api/collections");
+        const response = await fetch(`/api/collections/${resolvedParams.id}`);
         if (response.ok) {
-          const data = await response.json();
-          setCollections(data);
+          const collection: Collection = await response.json();
+          setTitle(collection.title);
+          setSlug(collection.slug);
+          setDescription(collection.description || "");
+          setCoverImage(collection.coverImage || "");
+          setPublished(collection.published);
+        } else {
+          alert("Failed to load collection");
+          router.push("/admin/collections");
         }
       } catch (error) {
-        console.error("Error fetching collections:", error);
+        console.error("Error loading collection:", error);
+        alert("Failed to load collection");
+        router.push("/admin/collections");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchCollections();
-  }, []);
+    loadCollection();
+  }, [params, router]);
 
-  const generateSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-  };
-
-  const handleTitleChange = (value: string) => {
-    setTitle(value);
-    if (!slugManuallyEdited) {
-      setSlug(generateSlug(value));
-    }
-  };
-
-  const handleSlugChange = (value: string) => {
-    setSlug(value);
-    setSlugManuallyEdited(true);
-  };
-
-  const handleSubmit = async (published: boolean) => {
+  const handleSubmit = async (shouldPublish: boolean) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/posts", {
-        method: "POST",
+      const response = await fetch(`/api/collections/${collectionId}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           title,
           slug,
-          excerpt,
-          content,
+          description,
           coverImage,
-          published,
-          collectionId: collectionId || null,
+          published: shouldPublish,
         }),
       });
 
       if (response.ok) {
-        router.push("/admin/posts");
+        router.push("/admin/collections");
         router.refresh();
       } else {
         const data = await response.json();
-        const errorMessage = data.error || "Failed to create post";
-        console.error("Server error:", errorMessage);
-        alert(errorMessage);
+        alert(data.error || "Failed to update collection");
       }
     } catch (error) {
-      console.error("Error creating post:", error);
-      alert(
-        "Failed to create post: " +
-          (error instanceof Error ? error.message : String(error)),
-      );
+      console.error("Error updating collection:", error);
+      alert("Failed to update collection");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleDelete = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this collection? Posts in this collection will not be deleted.",
+      )
+    ) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/collections/${collectionId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        router.push("/admin/collections");
+        router.refresh();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to delete collection");
+      }
+    } catch (error) {
+      console.error("Error deleting collection:", error);
+      alert("Failed to delete collection");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading collection...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Create New Post</CardTitle>
+            <CardTitle>Edit Collection</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
@@ -121,8 +146,8 @@ export default function NewPostPage() {
               <Input
                 id="title"
                 value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="Enter post title"
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Japan Vacation 2024"
               />
             </div>
 
@@ -132,43 +157,23 @@ export default function NewPostPage() {
                 id="slug"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                placeholder="post-url-slug"
+                placeholder="japan-vacation-2024"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="excerpt">Excerpt</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
-                id="excerpt"
-                value={excerpt}
-                onChange={(e) => setExcerpt(e.target.value)}
-                placeholder="Brief description of the post"
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief description of this collection"
                 rows={3}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="collection">Collection (Optional)</Label>
-              <Select value={collectionId} onValueChange={setCollectionId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="No collection (standalone post)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No collection</SelectItem>
-                  {collections.map((collection) => (
-                    <SelectItem key={collection.id} value={collection.id}>
-                      {collection.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Group this post with other related posts
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Cover Image</Label>
+              <Label>Cover Image (Optional)</Label>
               {coverImage ? (
                 <div className="space-y-2">
                   <img
@@ -192,11 +197,6 @@ export default function NewPostPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Content</Label>
-              <Editor content={content} onChange={setContent} />
-            </div>
-
             <div className="flex gap-4">
               <Button
                 onClick={() => handleSubmit(false)}
@@ -209,14 +209,24 @@ export default function NewPostPage() {
                 onClick={() => handleSubmit(true)}
                 disabled={isSubmitting || !title || !slug}
               >
-                Publish
+                {published ? "Update & Keep Published" : "Publish"}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => router.back()}
+                disabled={isSubmitting}
               >
                 Cancel
+              </Button>
+              <div className="flex-1" />
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isSubmitting}
+              >
+                Delete Collection
               </Button>
             </div>
           </CardContent>

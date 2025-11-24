@@ -17,13 +17,29 @@ import {
 } from "@/components/ui/select";
 import { UploadButton } from "@/components/upload-button";
 
+interface Post {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  coverImage: string | null;
+  published: boolean;
+  collectionId: string | null;
+}
+
 interface Collection {
   id: string;
   title: string;
 }
 
-export default function NewPostPage() {
+export default function EditPostPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
+  const [postId, setPostId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [excerpt, setExcerpt] = useState("");
@@ -31,10 +47,39 @@ export default function NewPostPage() {
   const [coverImage, setCoverImage] = useState("");
   const [collectionId, setCollectionId] = useState<string>("");
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [published, setPublished] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   useEffect(() => {
+    const loadPost = async () => {
+      const resolvedParams = await params;
+      setPostId(resolvedParams.id);
+
+      try {
+        const response = await fetch(`/api/posts/${resolvedParams.id}`);
+        if (response.ok) {
+          const post: Post = await response.json();
+          setTitle(post.title);
+          setSlug(post.slug);
+          setExcerpt(post.excerpt || "");
+          setContent(post.content);
+          setCoverImage(post.coverImage || "");
+          setCollectionId(post.collectionId || "none");
+          setPublished(post.published);
+        } else {
+          alert("Failed to load post");
+          router.push("/admin/posts");
+        }
+      } catch (error) {
+        console.error("Error loading post:", error);
+        alert("Failed to load post");
+        router.push("/admin/posts");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     const fetchCollections = async () => {
       try {
         const response = await fetch("/api/collections");
@@ -47,33 +92,15 @@ export default function NewPostPage() {
       }
     };
 
+    loadPost();
     fetchCollections();
-  }, []);
+  }, [params, router]);
 
-  const generateSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-  };
-
-  const handleTitleChange = (value: string) => {
-    setTitle(value);
-    if (!slugManuallyEdited) {
-      setSlug(generateSlug(value));
-    }
-  };
-
-  const handleSlugChange = (value: string) => {
-    setSlug(value);
-    setSlugManuallyEdited(true);
-  };
-
-  const handleSubmit = async (published: boolean) => {
+  const handleSubmit = async (shouldPublish: boolean) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/posts", {
-        method: "POST",
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -83,8 +110,9 @@ export default function NewPostPage() {
           excerpt,
           content,
           coverImage,
-          published,
-          collectionId: collectionId || null,
+          published: shouldPublish,
+          collectionId:
+            collectionId && collectionId !== "none" ? collectionId : null,
         }),
       });
 
@@ -93,14 +121,14 @@ export default function NewPostPage() {
         router.refresh();
       } else {
         const data = await response.json();
-        const errorMessage = data.error || "Failed to create post";
+        const errorMessage = data.error || "Failed to update post";
         console.error("Server error:", errorMessage);
         alert(errorMessage);
       }
     } catch (error) {
-      console.error("Error creating post:", error);
+      console.error("Error updating post:", error);
       alert(
-        "Failed to create post: " +
+        "Failed to update post: " +
           (error instanceof Error ? error.message : String(error)),
       );
     } finally {
@@ -108,12 +136,50 @@ export default function NewPostPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this post? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        router.push("/admin/posts");
+        router.refresh();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to delete post");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      alert("Failed to delete post");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading post...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Create New Post</CardTitle>
+            <CardTitle>Edit Post</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
@@ -121,7 +187,7 @@ export default function NewPostPage() {
               <Input
                 id="title"
                 value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter post title"
               />
             </div>
@@ -209,14 +275,24 @@ export default function NewPostPage() {
                 onClick={() => handleSubmit(true)}
                 disabled={isSubmitting || !title || !slug}
               >
-                Publish
+                {published ? "Update & Keep Published" : "Publish"}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => router.back()}
+                disabled={isSubmitting}
               >
                 Cancel
+              </Button>
+              <div className="flex-1" />
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isSubmitting}
+              >
+                Delete Post
               </Button>
             </div>
           </CardContent>

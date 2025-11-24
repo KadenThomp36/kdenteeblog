@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation"
-import { db } from "@/lib/db"
-import { formatDistance } from "date-fns"
-import Image from "next/image"
+import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
+import { formatDistance } from "date-fns";
+import Image from "next/image";
 
 export async function generateStaticParams() {
   const posts = await db.post.findMany({
@@ -11,34 +11,44 @@ export async function generateStaticParams() {
     select: {
       slug: true,
     },
-  })
+  });
 
   return posts.map((post) => ({
     slug: post.slug,
-  }))
+  }));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
   const post = await db.post.findUnique({
     where: {
-      slug: params.slug,
+      slug,
     },
-  })
+  });
 
   if (!post) {
-    return {}
+    return {};
   }
 
   return {
     title: post.title,
     description: post.excerpt,
-  }
+  };
 }
 
-export default async function PostPage({ params }: { params: { slug: string } }) {
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
   const post = await db.post.findUnique({
     where: {
-      slug: params.slug,
+      slug,
     },
     include: {
       author: {
@@ -48,10 +58,10 @@ export default async function PostPage({ params }: { params: { slug: string } })
         },
       },
     },
-  })
+  });
 
   if (!post || !post.published) {
-    notFound()
+    notFound();
   }
 
   return (
@@ -90,5 +100,5 @@ export default async function PostPage({ params }: { params: { slug: string } })
         />
       </article>
     </main>
-  )
+  );
 }

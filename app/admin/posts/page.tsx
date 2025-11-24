@@ -1,16 +1,16 @@
-import Link from "next/link"
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatDistance } from "date-fns"
-import { redirect } from "next/navigation"
+import Link from "next/link";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDistance } from "date-fns";
+import { redirect } from "next/navigation";
 
 export default async function AdminPostsPage() {
-  const session = await auth()
+  const session = await auth();
 
   if (!session?.user) {
-    redirect("/login")
+    redirect("/login");
   }
 
   const posts = await db.post.findMany({
@@ -20,15 +20,23 @@ export default async function AdminPostsPage() {
     orderBy: {
       createdAt: "desc",
     },
-  })
+  });
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold">Your Posts</h1>
           <Link href="/admin/posts/new">
             <Button>Create New Post</Button>
+          </Link>
+        </div>
+
+        <div className="mb-8">
+          <Link href="/admin/collections">
+            <Button variant="outline" size="sm">
+              📁 Manage Collections
+            </Button>
           </Link>
         </div>
 
@@ -86,5 +94,5 @@ export default async function AdminPostsPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

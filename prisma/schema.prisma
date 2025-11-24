@@ -6,21 +6,23 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String       @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String       @unique
   emailVerified DateTime?
   image         String?
   password      String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   posts         Post[]
   accounts      Account[]
   sessions      Session[]
+  collections   Collection[]
 }
 
 model Account {
@@ -50,22 +52,43 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Post {
+model Collection {
   id          String   @id @default(cuid())
   title       String
   slug        String   @unique
-  content     String
-  excerpt     String?
+  description String?
   coverImage  String?
   published   Boolean  @default(false)
   authorId    String
   author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  posts       Post[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  images      Image[]
 
   @@index([authorId])
   @@index([published])
+}
+
+model Post {
+  id           String      @id @default(cuid())
+  title        String
+  slug         String      @unique
+  content      String
+  excerpt      String?
+  coverImage   String?
+  published    Boolean     @default(false)
+  order        Int         @default(0)
+  authorId     String
+  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  images       Image[]
+
+  @@index([authorId])
+  @@index([published])
+  @@index([collectionId])
 }
 
 model Image {
