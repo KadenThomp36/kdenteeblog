@@ -55,6 +55,18 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
     return [
       {
         tag: "figure[data-type='image-with-caption']",
+        getAttrs: (element) => {
+          const img = element.querySelector("img");
+          const exifDiv = element.querySelector(".image-exif");
+          const caption = element.querySelector("figcaption");
+
+          return {
+            src: img?.getAttribute("src") || null,
+            alt: img?.getAttribute("alt") || null,
+            exif: exifDiv?.textContent || null,
+            caption: caption?.textContent || null,
+          };
+        },
       },
     ];
   },
