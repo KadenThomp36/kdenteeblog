@@ -346,7 +346,6 @@ export default async function Home({
                                           <Link
                                             key={tag.id}
                                             href={`/?tag=${tag.slug}`}
-                                            onClick={(e) => e.stopPropagation()}
                                           >
                                             <Badge
                                               variant="secondary"
