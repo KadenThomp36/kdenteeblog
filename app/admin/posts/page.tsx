@@ -27,9 +27,17 @@ export default async function AdminPostsPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold">Your Posts</h1>
-          <Link href="/admin/posts/new">
-            <Button>Create New Post</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/admin/tags">
+              <Button variant="outline">Manage Tags</Button>
+            </Link>
+            <Link href="/admin/collections">
+              <Button variant="outline">Manage Collections</Button>
+            </Link>
+            <Link href="/admin/posts/new">
+              <Button>Create New Post</Button>
+            </Link>
+          </div>
         </div>
 
         <div className="mb-8">
