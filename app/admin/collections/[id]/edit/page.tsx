@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -176,11 +177,14 @@ export default function EditCollectionPage({
               <Label>Cover Image (Optional)</Label>
               {coverImage ? (
                 <div className="space-y-2">
-                  <img
-                    src={coverImage}
-                    alt="Cover"
-                    className="w-full h-48 object-cover rounded-md"
-                  />
+                  <div className="relative w-full h-48 rounded-md overflow-hidden">
+                    <Image
+                      src={coverImage}
+                      alt="Cover"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="outline"

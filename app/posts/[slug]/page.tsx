@@ -95,7 +95,7 @@ export default async function PostPage({
         </header>
 
         <div
-          className="prose prose-lg dark:prose-invert max-w-none"
+          className="prose prose-lg dark:prose-invert max-w-none [&_.image-wrapper]:my-4 [&_.image-wrapper[data-float='left']]:float-left [&_.image-wrapper[data-float='left']]:mr-4 [&_.image-wrapper[data-float='left']]:mb-4 [&_.image-wrapper[data-float='left']]:max-w-[50%] [&_.image-wrapper[data-float='right']]:float-right [&_.image-wrapper[data-float='right']]:ml-4 [&_.image-wrapper[data-float='right']]:mb-4 [&_.image-wrapper[data-float='right']]:max-w-[50%] [&_.image-wrapper_img]:rounded-lg [&_.image-wrapper_img]:max-w-full [&_.image-wrapper_img]:h-auto"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
       </article>
