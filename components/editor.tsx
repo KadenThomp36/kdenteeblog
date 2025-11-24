@@ -2,7 +2,6 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import TiptapImage from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
@@ -10,7 +9,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
-import { mergeAttributes } from "@tiptap/core";
+import { ImageWithCaption } from "@/lib/tiptap-image-with-caption";
+import exifr from "exifr";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -41,209 +41,6 @@ import imageCompression from "browser-image-compression";
 
 const lowlight = createLowlight(common);
 
-// Custom Image extension with resize and float support
-const Image = TiptapImage.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      width: {
-        default: null,
-        parseHTML: (element) => element.getAttribute("width"),
-        renderHTML: (attributes) => {
-          if (!attributes.width) {
-            return {};
-          }
-          return { width: attributes.width };
-        },
-      },
-      height: {
-        default: null,
-        parseHTML: (element) => element.getAttribute("height"),
-        renderHTML: (attributes) => {
-          if (!attributes.height) {
-            return {};
-          }
-          return { height: attributes.height };
-        },
-      },
-      float: {
-        default: null,
-        parseHTML: (element) => element.getAttribute("data-float"),
-        renderHTML: (attributes) => {
-          if (!attributes.float) {
-            return {};
-          }
-          return { "data-float": attributes.float };
-        },
-      },
-    };
-  },
-  addNodeView() {
-    return ({ node, editor, getPos }) => {
-      const container = document.createElement("div");
-      container.className = "image-wrapper";
-
-      const float = node.attrs.float;
-      if (float === "left") {
-        container.style.cssText =
-          "float: left; margin: 0 1rem 1rem 0; max-width: 50%;";
-      } else if (float === "right") {
-        container.style.cssText =
-          "float: right; margin: 0 0 1rem 1rem; max-width: 50%;";
-      } else {
-        container.style.cssText = "display: block; margin: 1rem 0;";
-      }
-
-      const img = document.createElement("img");
-      img.src = node.attrs.src;
-      img.alt = node.attrs.alt || "";
-
-      if (node.attrs.width) {
-        img.style.width = node.attrs.width;
-      }
-      if (node.attrs.height) {
-        img.style.height = node.attrs.height;
-      }
-
-      img.style.maxWidth = "100%";
-      img.style.height = "auto";
-      img.style.cursor = "pointer";
-      img.style.borderRadius = "0.5rem";
-
-      // Image controls (only show when editor is focused/editable)
-      if (editor.isEditable) {
-        const controls = document.createElement("div");
-        controls.className = "image-controls";
-        controls.style.cssText =
-          "display: flex; gap: 0.25rem; margin-top: 0.25rem; flex-wrap: wrap;";
-
-        const createButton = (text: string, onClick: () => void) => {
-          const btn = document.createElement("button");
-          btn.textContent = text;
-          btn.type = "button";
-          btn.style.cssText =
-            "padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background: white; cursor: pointer;";
-          btn.addEventListener("click", (e) => {
-            e.preventDefault();
-            onClick();
-          });
-          return btn;
-        };
-
-        // Size controls
-        controls.appendChild(
-          createButton("Small (300px)", () => {
-            const pos = getPos();
-            if (typeof pos === "number") {
-              editor.commands.updateAttributes("image", {
-                width: "300px",
-                height: null,
-              });
-            }
-          }),
-        );
-
-        controls.appendChild(
-          createButton("Medium (500px)", () => {
-            const pos = getPos();
-            if (typeof pos === "number") {
-              editor.commands.updateAttributes("image", {
-                width: "500px",
-                height: null,
-              });
-            }
-          }),
-        );
-
-        controls.appendChild(
-          createButton("Large (700px)", () => {
-            const pos = getPos();
-            if (typeof pos === "number") {
-              editor.commands.updateAttributes("image", {
-                width: "700px",
-                height: null,
-              });
-            }
-          }),
-        );
-
-        controls.appendChild(
-          createButton("Full", () => {
-            const pos = getPos();
-            if (typeof pos === "number") {
-              editor.commands.updateAttributes("image", {
-                width: "100%",
-                height: null,
-              });
-            }
-          }),
-        );
-
-        // Float controls
-        controls.appendChild(
-          createButton("◀ Float Left", () => {
-            const pos = getPos();
-            if (typeof pos === "number") {
-              editor.commands.updateAttributes("image", {
-                float: "left",
-              });
-            }
-          }),
-        );
-
-        controls.appendChild(
-          createButton("Center", () => {
-            const pos = getPos();
-            if (typeof pos === "number") {
-              editor.commands.updateAttributes("image", {
-                float: null,
-              });
-            }
-          }),
-        );
-
-        controls.appendChild(
-          createButton("Float Right ▶", () => {
-            const pos = getPos();
-            if (typeof pos === "number") {
-              editor.commands.updateAttributes("image", {
-                float: "right",
-              });
-            }
-          }),
-        );
-
-        controls.appendChild(
-          createButton("🗑️ Delete", () => {
-            const pos = getPos();
-            if (typeof pos === "number") {
-              editor.commands.deleteRange({
-                from: pos,
-                to: pos + node.nodeSize,
-              });
-            }
-          }),
-        );
-
-        container.appendChild(img);
-        container.appendChild(controls);
-      } else {
-        container.appendChild(img);
-      }
-
-      return {
-        dom: container,
-        update: (updatedNode) => {
-          if (updatedNode.type.name !== "image") {
-            return false;
-          }
-          return true;
-        },
-      };
-    };
-  },
-});
-
 interface EditorProps {
   content: string;
   onChange: (content: string) => void;
@@ -260,10 +57,7 @@ export function Editor({ content, onChange }: EditorProps) {
       StarterKit.configure({
         codeBlock: false,
       }),
-      Image.configure({
-        inline: true,
-        allowBase64: true,
-      }),
+      ImageWithCaption,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -350,6 +144,45 @@ export function Editor({ content, onChange }: EditorProps) {
         Array.from(files).map((file) => imageCompression(file, options)),
       );
 
+      // Extract EXIF data from the first compressed file
+      let exifString: string | null = null;
+      try {
+        const exifData = await exifr.parse(compressedFiles[0]);
+        if (exifData) {
+          const parts: string[] = [];
+
+          // Aperture (f-number)
+          if (exifData.FNumber) {
+            parts.push(`f/${exifData.FNumber}`);
+          }
+
+          // Shutter speed
+          if (exifData.ExposureTime) {
+            if (exifData.ExposureTime < 1) {
+              parts.push(`1/${Math.round(1 / exifData.ExposureTime)}s`);
+            } else {
+              parts.push(`${exifData.ExposureTime}s`);
+            }
+          }
+
+          // ISO
+          if (exifData.ISO) {
+            parts.push(`ISO ${exifData.ISO}`);
+          }
+
+          // Focal length
+          if (exifData.FocalLength) {
+            parts.push(`${exifData.FocalLength}mm`);
+          }
+
+          if (parts.length > 0) {
+            exifString = parts.join(" • ");
+          }
+        }
+      } catch (exifError) {
+        console.log("No EXIF data found:", exifError);
+      }
+
       const formData = new FormData();
       compressedFiles.forEach((file) => {
         formData.append("files", file);
@@ -368,7 +201,19 @@ export function Editor({ content, onChange }: EditorProps) {
 
       if (data.urls && data.urls.length > 0 && editorRef.current) {
         data.urls.forEach((url: string) => {
-          editorRef.current.chain().focus().setImage({ src: url }).run();
+          editorRef.current
+            .chain()
+            .focus()
+            .insertContent({
+              type: "imageWithCaption",
+              attrs: {
+                src: url,
+                alt: "",
+                caption: null,
+                exif: exifString,
+              },
+            })
+            .run();
         });
       }
     } catch (error) {

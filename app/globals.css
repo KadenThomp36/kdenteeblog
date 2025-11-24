@@ -103,8 +103,30 @@
     background: hsl(var(--primary) / 0.3);
 }
 
-/* Blog Post Images */
-.prose img {
+/* Blog Post Images with Captions and EXIF */
+.prose figure[data-type="image-with-caption"] {
+    @apply mx-auto my-8;
+    max-width: 60%;
+    text-align: center;
+}
+
+.prose figure[data-type="image-with-caption"] img {
+    @apply rounded-xl shadow-lg w-full;
+    height: auto;
+}
+
+.prose .image-exif {
+    @apply text-xs text-muted-foreground mt-3 mb-2;
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.prose .image-caption {
+    @apply text-sm text-muted-foreground mt-2 italic;
+}
+
+/* Legacy images without caption support */
+.prose img:not(figure img) {
     @apply mx-auto my-8 rounded-xl shadow-lg;
     max-width: 60%;
     height: auto;
