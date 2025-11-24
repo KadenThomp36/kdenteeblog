@@ -141,6 +141,15 @@ export function Editor({ content, onChange }: EditorProps) {
         if (exifData) {
           const parts: string[] = [];
 
+          // Camera name (Make and Model)
+          if (exifData.Make && exifData.Model) {
+            // Remove make from model if it's duplicated (e.g., "Canon Canon EOS R5" -> "Canon EOS R5")
+            const model = exifData.Model.replace(exifData.Make, "").trim();
+            parts.push(`${exifData.Make} ${model}`);
+          } else if (exifData.Model) {
+            parts.push(exifData.Model);
+          }
+
           // Aperture (f-number)
           if (exifData.FNumber) {
             parts.push(`f/${Math.round(exifData.FNumber * 10) / 10}`);
