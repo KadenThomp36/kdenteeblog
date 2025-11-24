@@ -1,4 +1,6 @@
-import { db } from "@/lib/db";
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,19 +21,70 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2 } from "lucide-react";
 
-export default async function TagsPage() {
-  const tags = await db.tag.findMany({
-    include: {
-      _count: {
-        select: {
-          posts: true,
-        },
-      },
-    },
-    orderBy: {
-      name: "asc",
-    },
-  });
+interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+  _count: {
+    posts: number;
+  };
+}
+
+export default function TagsPage() {
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTags();
+  }, []);
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch("/api/tags");
+      if (response.ok) {
+        const data = await response.json();
+        setTags(data);
+      }
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (tagId: string, tagName: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${tagName}"? It will be removed from all posts.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/tags/${tagId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        fetchTags(); // Refresh the list
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to delete tag");
+      }
+    } catch (error) {
+      console.error("Error deleting tag:", error);
+      alert("Failed to delete tag");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading tags...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,17 +143,14 @@ export default async function TagsPage() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                           </Link>
-                          <form action={`/api/tags/${tag.id}`} method="POST">
-                            <input type="hidden" name="_method" value="DELETE" />
-                            <Button
-                              type="submit"
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </form>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(tag.id, tag.name)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
