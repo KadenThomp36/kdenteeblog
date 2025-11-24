@@ -133,21 +133,11 @@ export function Editor({ content, onChange }: EditorProps) {
     setIsUploading(true);
 
     try {
-      // Compress images before uploading
-      const options = {
-        maxSizeMB: 4,
-        maxWidthOrHeight: 2048,
-        useWebWorker: true,
-      };
-
-      const compressedFiles = await Promise.all(
-        Array.from(files).map((file) => imageCompression(file, options)),
-      );
-
-      // Extract EXIF data from the first compressed file
+      // Extract EXIF data from the ORIGINAL file before compression
       let exifString: string | null = null;
       try {
-        const exifData = await exifr.parse(compressedFiles[0]);
+        const exifData = await exifr.parse(files[0]);
+        console.log("EXIF data extracted:", exifData);
         if (exifData) {
           const parts: string[] = [];
 
@@ -177,11 +167,23 @@ export function Editor({ content, onChange }: EditorProps) {
 
           if (parts.length > 0) {
             exifString = parts.join(" • ");
+            console.log("EXIF string created:", exifString);
           }
         }
       } catch (exifError) {
         console.log("No EXIF data found:", exifError);
       }
+
+      // Compress images after extracting EXIF
+      const options = {
+        maxSizeMB: 4,
+        maxWidthOrHeight: 2048,
+        useWebWorker: true,
+      };
+
+      const compressedFiles = await Promise.all(
+        Array.from(files).map((file) => imageCompression(file, options)),
+      );
 
       const formData = new FormData();
       compressedFiles.forEach((file) => {
