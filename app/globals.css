@@ -105,29 +105,94 @@
 
 /* Blog Post Images with Captions and EXIF */
 .prose figure[data-type="image-with-caption"] {
-    @apply mx-auto my-8;
-    max-width: 60%;
+    @apply mx-auto my-6 sm:my-8;
+    max-width: 100%;
     text-align: center;
 }
 
+@media (min-width: 640px) {
+    .prose figure[data-type="image-with-caption"] {
+        max-width: 80%;
+    }
+}
+
+@media (min-width: 1024px) {
+    .prose figure[data-type="image-with-caption"] {
+        max-width: 60%;
+    }
+}
+
 .prose figure[data-type="image-with-caption"] img {
-    @apply rounded-xl shadow-lg w-full;
+    @apply rounded-lg sm:rounded-xl shadow-md sm:shadow-lg w-full;
     height: auto;
 }
 
 .prose .image-exif {
-    @apply text-xs text-muted-foreground mt-3 mb-2;
+    @apply text-xs text-muted-foreground mt-2 sm:mt-3 mb-1 sm:mb-2 px-2 sm:px-0;
     font-family:
         ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    /* Wrap long EXIF strings on mobile */
+    word-break: break-word;
 }
 
 .prose .image-caption {
-    @apply text-sm text-muted-foreground mt-2 italic;
+    @apply text-sm text-muted-foreground mt-1 sm:mt-2 italic px-2 sm:px-0;
 }
 
 /* Legacy images without caption support */
 .prose img:not(figure img) {
-    @apply mx-auto my-8 rounded-xl shadow-lg;
-    max-width: 60%;
+    @apply mx-auto my-6 sm:my-8 rounded-lg sm:rounded-xl shadow-md sm:shadow-lg;
+    max-width: 100%;
     height: auto;
+}
+
+@media (min-width: 640px) {
+    .prose img:not(figure img) {
+        max-width: 80%;
+    }
+}
+
+@media (min-width: 1024px) {
+    .prose img:not(figure img) {
+        max-width: 60%;
+    }
+}
+
+/* Editor-specific image styles (node view) */
+.editor-image-figure {
+    @apply mx-auto my-4 sm:my-6 text-center;
+    max-width: 100%;
+}
+
+@media (min-width: 640px) {
+    .editor-image-figure {
+        max-width: 80%;
+    }
+}
+
+@media (min-width: 1024px) {
+    .editor-image-figure {
+        max-width: 60%;
+    }
+}
+
+.editor-image-figure .editor-image {
+    @apply rounded-lg sm:rounded-xl shadow-md sm:shadow-lg w-full;
+    height: auto;
+}
+
+.editor-image-figure .image-caption-input {
+    @apply w-full border border-input rounded-md px-3 py-2 mt-2 text-sm text-muted-foreground italic text-center bg-transparent;
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+    /* Touch-friendly sizing on mobile */
+    min-height: 44px;
+}
+
+.editor-image-figure .editor-image-delete-btn {
+    @apply mt-2 px-3 py-1.5 text-xs border border-input rounded-md bg-background cursor-pointer;
+    @apply hover:bg-destructive hover:text-destructive-foreground hover:border-destructive;
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+    @apply transition-colors;
+    /* Touch-friendly sizing */
+    min-height: 36px;
 }

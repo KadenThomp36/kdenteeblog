@@ -1,6 +1,10 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import {
+  useEditor,
+  EditorContent,
+  Editor as TiptapEditor,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
@@ -13,6 +17,11 @@ import { ImageWithCaption } from "@/lib/tiptap-image-with-caption";
 import exifr from "exifr";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Bold,
   Italic,
@@ -35,6 +44,9 @@ import {
   Redo,
   Minus,
   CodeSquare,
+  Type,
+  MoreHorizontal,
+  Pilcrow,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import imageCompression from "browser-image-compression";
@@ -46,10 +58,88 @@ interface EditorProps {
   onChange: (content: string) => void;
 }
 
+// Toolbar button component with proper touch targets and accessibility
+interface ToolbarButtonProps {
+  onClick: () => void;
+  disabled?: boolean;
+  isActive?: boolean;
+  title: string;
+  ariaLabel: string;
+  children: React.ReactNode;
+}
+
+function ToolbarButton({
+  onClick,
+  disabled,
+  isActive,
+  title,
+  ariaLabel,
+  children,
+}: ToolbarButtonProps) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      disabled={disabled}
+      className={`h-9 w-9 p-0 sm:h-8 sm:w-8 touch-manipulation ${isActive ? "bg-muted" : ""}`}
+      title={title}
+      aria-label={ariaLabel}
+      aria-pressed={isActive}
+    >
+      {children}
+    </Button>
+  );
+}
+
+// Mobile-friendly toolbar group that collapses into a popover
+interface ToolbarGroupProps {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}
+
+function MobileToolbarGroup({
+  label,
+  icon,
+  children,
+  className,
+}: ToolbarGroupProps) {
+  return (
+    <>
+      {/* Desktop: show all buttons */}
+      <div className={`hidden sm:flex gap-0.5 ${className || ""}`}>
+        {children}
+      </div>
+      {/* Mobile: collapse into popover */}
+      <div className="sm:hidden">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0 touch-manipulation"
+              aria-label={label}
+            >
+              {icon}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <div className="flex flex-wrap gap-1">{children}</div>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </>
+  );
+}
+
 export function Editor({ content, onChange }: EditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<TiptapEditor | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -83,7 +173,7 @@ export function Editor({ content, onChange }: EditorProps) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[500px] p-6",
+          "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[300px] sm:min-h-[500px] p-4 sm:p-6",
       },
       handleDrop: (view, event, slice, moved) => {
         if (
@@ -211,8 +301,9 @@ export function Editor({ content, onChange }: EditorProps) {
       const data = await response.json();
 
       if (data.urls && data.urls.length > 0 && editorRef.current) {
+        const currentEditor = editorRef.current;
         data.urls.forEach((url: string) => {
-          editorRef.current
+          currentEditor
             .chain()
             .focus()
             .insertContent({
@@ -269,246 +360,234 @@ export function Editor({ content, onChange }: EditorProps) {
 
   return (
     <div className="border rounded-lg bg-background">
-      <div className="sticky top-16 z-10 border-b bg-muted/30 p-2 backdrop-blur-sm rounded-t-lg">
-        <div className="flex flex-wrap gap-1">
-          {/* Text formatting */}
-          <div className="flex gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+      {/* Toolbar - sticky below header, responsive layout */}
+      <div
+        className="sticky top-16 z-10 border-b bg-background/95 p-1.5 sm:p-2 backdrop-blur-sm rounded-t-lg supports-[backdrop-filter]:bg-background/60"
+        role="toolbar"
+        aria-label="Editor formatting toolbar"
+      >
+        <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
+          {/* Text formatting - always visible on mobile (most used) */}
+          <div className="flex gap-0.5">
+            <ToolbarButton
               onClick={() => editor.chain().focus().toggleBold().run()}
               disabled={!editor.can().chain().focus().toggleBold().run()}
-              className={editor.isActive("bold") ? "bg-muted" : ""}
+              isActive={editor.isActive("bold")}
               title="Bold (Ctrl+B)"
+              ariaLabel="Bold"
             >
               <Bold className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() => editor.chain().focus().toggleItalic().run()}
               disabled={!editor.can().chain().focus().toggleItalic().run()}
-              className={editor.isActive("italic") ? "bg-muted" : ""}
+              isActive={editor.isActive("italic")}
               title="Italic (Ctrl+I)"
+              ariaLabel="Italic"
             >
               <Italic className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
-              disabled={!editor.can().chain().focus().toggleUnderline().run()}
-              className={editor.isActive("underline") ? "bg-muted" : ""}
-              title="Underline (Ctrl+U)"
-            >
-              <UnderlineIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => editor.chain().focus().toggleStrike().run()}
-              disabled={!editor.can().chain().focus().toggleStrike().run()}
-              className={editor.isActive("strike") ? "bg-muted" : ""}
-              title="Strikethrough"
-            >
-              <Strikethrough className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => editor.chain().focus().toggleCode().run()}
-              disabled={!editor.can().chain().focus().toggleCode().run()}
-              className={editor.isActive("code") ? "bg-muted" : ""}
-              title="Inline code"
-            >
-              <Code className="h-4 w-4" />
-            </Button>
+            </ToolbarButton>
+            {/* Show underline on desktop, hide on mobile to save space */}
+            <div className="hidden sm:block">
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleUnderline().run()}
+                disabled={!editor.can().chain().focus().toggleUnderline().run()}
+                isActive={editor.isActive("underline")}
+                title="Underline (Ctrl+U)"
+                ariaLabel="Underline"
+              >
+                <UnderlineIcon className="h-4 w-4" />
+              </ToolbarButton>
+            </div>
           </div>
 
-          <Separator orientation="vertical" className="h-8" />
+          <Separator
+            orientation="vertical"
+            className="h-6 sm:h-8 hidden sm:block"
+          />
 
-          {/* Headings */}
-          <div className="flex gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+          {/* Headings - collapse on mobile */}
+          <MobileToolbarGroup
+            label="Headings"
+            icon={<Type className="h-4 w-4" />}
+          >
+            <ToolbarButton
               onClick={() =>
                 editor.chain().focus().toggleHeading({ level: 1 }).run()
               }
-              className={
-                editor.isActive("heading", { level: 1 }) ? "bg-muted" : ""
-              }
+              isActive={editor.isActive("heading", { level: 1 })}
               title="Heading 1"
+              ariaLabel="Heading 1"
             >
               <Heading1 className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() =>
                 editor.chain().focus().toggleHeading({ level: 2 }).run()
               }
-              className={
-                editor.isActive("heading", { level: 2 }) ? "bg-muted" : ""
-              }
+              isActive={editor.isActive("heading", { level: 2 })}
               title="Heading 2"
+              ariaLabel="Heading 2"
             >
               <Heading2 className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() =>
                 editor.chain().focus().toggleHeading({ level: 3 }).run()
               }
-              className={
-                editor.isActive("heading", { level: 3 }) ? "bg-muted" : ""
-              }
+              isActive={editor.isActive("heading", { level: 3 })}
               title="Heading 3"
+              ariaLabel="Heading 3"
             >
               <Heading3 className="h-4 w-4" />
-            </Button>
-          </div>
+            </ToolbarButton>
+          </MobileToolbarGroup>
 
-          <Separator orientation="vertical" className="h-8" />
+          <Separator
+            orientation="vertical"
+            className="h-6 sm:h-8 hidden sm:block"
+          />
 
-          {/* Lists and blocks */}
-          <div className="flex gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+          {/* Lists and blocks - collapse on mobile */}
+          <MobileToolbarGroup
+            label="Lists and blocks"
+            icon={<Pilcrow className="h-4 w-4" />}
+          >
+            <ToolbarButton
               onClick={() => editor.chain().focus().toggleBulletList().run()}
-              className={editor.isActive("bulletList") ? "bg-muted" : ""}
+              isActive={editor.isActive("bulletList")}
               title="Bullet list"
+              ariaLabel="Bullet list"
             >
               <List className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() => editor.chain().focus().toggleOrderedList().run()}
-              className={editor.isActive("orderedList") ? "bg-muted" : ""}
+              isActive={editor.isActive("orderedList")}
               title="Numbered list"
+              ariaLabel="Numbered list"
             >
               <ListOrdered className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() => editor.chain().focus().toggleBlockquote().run()}
-              className={editor.isActive("blockquote") ? "bg-muted" : ""}
+              isActive={editor.isActive("blockquote")}
               title="Blockquote"
+              ariaLabel="Blockquote"
             >
               <Quote className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-              className={editor.isActive("codeBlock") ? "bg-muted" : ""}
+              isActive={editor.isActive("codeBlock")}
               title="Code block"
+              ariaLabel="Code block"
             >
               <CodeSquare className="h-4 w-4" />
-            </Button>
-          </div>
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleCode().run()}
+              disabled={!editor.can().chain().focus().toggleCode().run()}
+              isActive={editor.isActive("code")}
+              title="Inline code"
+              ariaLabel="Inline code"
+            >
+              <Code className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              disabled={!editor.can().chain().focus().toggleStrike().run()}
+              isActive={editor.isActive("strike")}
+              title="Strikethrough"
+              ariaLabel="Strikethrough"
+            >
+              <Strikethrough className="h-4 w-4" />
+            </ToolbarButton>
+            {/* Underline in mobile menu */}
+            <div className="sm:hidden">
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleUnderline().run()}
+                disabled={!editor.can().chain().focus().toggleUnderline().run()}
+                isActive={editor.isActive("underline")}
+                title="Underline (Ctrl+U)"
+                ariaLabel="Underline"
+              >
+                <UnderlineIcon className="h-4 w-4" />
+              </ToolbarButton>
+            </div>
+          </MobileToolbarGroup>
 
-          <Separator orientation="vertical" className="h-8" />
+          <Separator
+            orientation="vertical"
+            className="h-6 sm:h-8 hidden sm:block"
+          />
 
-          {/* Alignment */}
-          <div className="flex gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+          {/* Alignment - collapse on mobile */}
+          <MobileToolbarGroup
+            label="Text alignment"
+            icon={<AlignLeft className="h-4 w-4" />}
+          >
+            <ToolbarButton
               onClick={() => editor.chain().focus().setTextAlign("left").run()}
-              className={
-                editor.isActive({ textAlign: "left" }) ? "bg-muted" : ""
-              }
+              isActive={editor.isActive({ textAlign: "left" })}
               title="Align left"
+              ariaLabel="Align left"
             >
               <AlignLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() =>
                 editor.chain().focus().setTextAlign("center").run()
               }
-              className={
-                editor.isActive({ textAlign: "center" }) ? "bg-muted" : ""
-              }
+              isActive={editor.isActive({ textAlign: "center" })}
               title="Align center"
+              ariaLabel="Align center"
             >
               <AlignCenter className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() => editor.chain().focus().setTextAlign("right").run()}
-              className={
-                editor.isActive({ textAlign: "right" }) ? "bg-muted" : ""
-              }
+              isActive={editor.isActive({ textAlign: "right" })}
               title="Align right"
+              ariaLabel="Align right"
             >
               <AlignRight className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() =>
                 editor.chain().focus().setTextAlign("justify").run()
               }
-              className={
-                editor.isActive({ textAlign: "justify" }) ? "bg-muted" : ""
-              }
+              isActive={editor.isActive({ textAlign: "justify" })}
               title="Justify"
+              ariaLabel="Justify text"
             >
               <AlignJustify className="h-4 w-4" />
-            </Button>
-          </div>
+            </ToolbarButton>
+          </MobileToolbarGroup>
 
-          <Separator orientation="vertical" className="h-8" />
+          <Separator
+            orientation="vertical"
+            className="h-6 sm:h-8 hidden sm:block"
+          />
 
-          {/* Media and links */}
-          <div className="flex gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+          {/* Media and links - always visible (frequently used) */}
+          <div className="flex gap-0.5">
+            <ToolbarButton
               onClick={addLink}
-              className={editor.isActive("link") ? "bg-muted" : ""}
+              isActive={editor.isActive("link")}
               title="Add link"
+              ariaLabel="Add link"
             >
               <Link2 className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={handleImageClick}
               disabled={isUploading}
               title="Add image (or drag & drop)"
+              ariaLabel="Add image"
             >
               <ImageIcon className="h-4 w-4" />
-              {isUploading && (
-                <span className="ml-1 text-xs">Uploading...</span>
-              )}
-            </Button>
+            </ToolbarButton>
             <input
               ref={fileInputRef}
               type="file"
@@ -516,56 +595,61 @@ export function Editor({ content, onChange }: EditorProps) {
               className="hidden"
               onChange={handleFileChange}
               multiple
+              aria-label="Upload image"
             />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => editor.chain().focus().setHorizontalRule().run()}
-              title="Horizontal rule"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
+            <div className="hidden sm:block">
+              <ToolbarButton
+                onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                title="Horizontal rule"
+                ariaLabel="Insert horizontal rule"
+              >
+                <Minus className="h-4 w-4" />
+              </ToolbarButton>
+            </div>
           </div>
 
-          <div className="flex-1" />
+          {/* Spacer */}
+          <div className="flex-1 min-w-2" />
 
-          {/* History */}
-          <div className="flex gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+          {/* Upload indicator */}
+          {isUploading && (
+            <span className="text-xs text-muted-foreground animate-pulse">
+              Uploading...
+            </span>
+          )}
+
+          {/* History - always visible */}
+          <div className="flex gap-0.5">
+            <ToolbarButton
               onClick={() => editor.chain().focus().undo().run()}
               disabled={!editor.can().chain().focus().undo().run()}
               title="Undo (Ctrl+Z)"
+              ariaLabel="Undo"
             >
               <Undo className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() => editor.chain().focus().redo().run()}
               disabled={!editor.can().chain().focus().redo().run()}
               title="Redo (Ctrl+Shift+Z)"
+              ariaLabel="Redo"
             >
               <Redo className="h-4 w-4" />
-            </Button>
+            </ToolbarButton>
           </div>
         </div>
       </div>
 
+      {/* Editor content area */}
       <div className="bg-background">
         <EditorContent editor={editor} />
       </div>
 
-      <div className="border-t bg-muted/30 p-2 text-xs text-muted-foreground">
-        <div className="flex gap-4">
-          <span>
-            💡 Tip: Drag & drop images or paste them directly into the editor
-          </span>
-        </div>
+      {/* Footer tip - hidden on very small screens */}
+      <div className="border-t bg-muted/30 p-2 text-xs text-muted-foreground hidden sm:block">
+        <span>
+          Tip: Drag & drop images or paste them directly into the editor
+        </span>
       </div>
     </div>
   );

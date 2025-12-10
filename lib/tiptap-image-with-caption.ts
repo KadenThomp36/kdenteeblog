@@ -115,24 +115,19 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
     return ({ node, editor, getPos }) => {
       const container = document.createElement("figure");
       container.setAttribute("data-type", "image-with-caption");
-      container.className = "image-with-caption";
-      container.style.cssText =
-        "margin: 2rem auto; max-width: 60%; text-align: center;";
+      container.className = "image-with-caption editor-image-figure";
 
       // Image element
       const img = document.createElement("img");
       img.src = node.attrs.src;
       img.alt = node.attrs.alt || "";
-      img.style.cssText =
-        "border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); width: 100%; height: auto;";
+      img.className = "editor-image";
       container.appendChild(img);
 
       // EXIF metadata
       if (node.attrs.exif) {
         const exifDiv = document.createElement("div");
         exifDiv.className = "image-exif";
-        exifDiv.style.cssText =
-          "font-size: 0.75rem; color: #6b7280; margin-top: 0.75rem; margin-bottom: 0.5rem; font-family: ui-monospace, monospace;";
         exifDiv.textContent = node.attrs.exif;
         container.appendChild(exifDiv);
       }
@@ -146,8 +141,7 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
         captionInput.placeholder = "Add a caption...";
         captionInput.value = node.attrs.caption || "";
         captionInput.className = "image-caption-input";
-        captionInput.style.cssText =
-          "width: 100%; border: 1px solid #e5e7eb; border-radius: 0.25rem; padding: 0.5rem; margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280; font-style: italic; text-align: center; background: transparent;";
+        captionInput.setAttribute("aria-label", "Image caption");
 
         let isUpdating = false;
 
@@ -172,10 +166,10 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
 
         // Delete button
         const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "🗑️ Delete";
+        deleteBtn.textContent = "Delete image";
         deleteBtn.type = "button";
-        deleteBtn.style.cssText =
-          "margin-top: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background: white; cursor: pointer;";
+        deleteBtn.className = "editor-image-delete-btn";
+        deleteBtn.setAttribute("aria-label", "Delete image");
         deleteBtn.addEventListener("click", (e) => {
           e.preventDefault();
           const pos = getPos();
@@ -191,8 +185,6 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
         // Display caption in read-only mode
         const caption = document.createElement("figcaption");
         caption.className = "image-caption";
-        caption.style.cssText =
-          "font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem; font-style: italic;";
         caption.textContent = node.attrs.caption;
         container.appendChild(caption);
       }
@@ -211,7 +203,7 @@ export const ImageWithCaption = Node.create<ImageWithCaptionOptions>({
           }
           return false;
         },
-        ignoreMutation: (mutation) => {
+        ignoreMutation: () => {
           // Ignore all mutations inside this node - we handle state manually
           return true;
         },
