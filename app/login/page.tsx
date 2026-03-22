@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { LogoMark } from "@/components/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,9 +45,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm animate-fade-up">
         {/* Logo */}
-        <div className="text-center mb-12">
-          <Link href="/">
-            <span className="font-display text-4xl tracking-tight text-foreground hover:text-primary transition-colors">
+        <div className="flex justify-center mb-12">
+          <Link href="/" className="group flex flex-col items-center gap-3 text-foreground hover:text-primary transition-colors">
+            <LogoMark size={48} />
+            <span className="font-display text-3xl tracking-tight">
               KdenTee
             </span>
           </Link>

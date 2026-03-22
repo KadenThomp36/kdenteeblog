@@ -3,6 +3,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
+import { Logo } from "@/components/logo";
 
 export async function Header() {
   const session = await auth();
@@ -11,10 +12,8 @@ export async function Header() {
     <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-xl border-b border-border/40">
       <div className="max-w-7xl mx-auto flex h-14 items-center justify-between px-6">
         <div className="flex items-center gap-10">
-          <Link href="/" className="group flex items-center gap-1">
-            <span className="font-display text-2xl tracking-tight text-foreground transition-colors group-hover:text-primary">
-              KdenTee
-            </span>
+          <Link href="/" className="group flex items-center gap-1 text-foreground transition-colors hover:text-primary">
+            <Logo />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link

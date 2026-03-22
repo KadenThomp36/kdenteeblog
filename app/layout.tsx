@@ -20,6 +20,11 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: "KdenTee",
   description: "Stories, images, and ideas — a personal editorial.",
+  metadataBase: new URL("https://kdentee.com"),
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FAF7F2" },
+    { media: "(prefers-color-scheme: dark)", color: "#111111" },
+  ],
 };
 
 export default function RootLayout({

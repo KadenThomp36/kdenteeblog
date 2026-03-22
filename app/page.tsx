@@ -4,6 +4,7 @@ import { formatDistance, format } from "date-fns";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { TimelineSidebar } from "@/components/timeline-sidebar";
+import { LogoMark } from "@/components/logo";
 
 interface SearchParams {
   tag?: string;
@@ -435,8 +436,9 @@ export default async function Home({
       {/* Footer */}
       <footer className="border-t border-border/40">
         <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="font-display text-lg text-muted-foreground">
-            KdenTee
+          <span className="inline-flex items-center gap-2 text-muted-foreground">
+            <LogoMark size={18} />
+            <span className="font-display text-lg">KdenTee</span>
           </span>
           <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             &copy; {new Date().getFullYear()} &middot; All rights reserved
