@@ -146,6 +146,8 @@ export function Editor({ content, onChange }: EditorProps) {
     extensions: [
       StarterKit.configure({
         codeBlock: false,
+        link: false,
+        underline: false,
       }),
       ImageWithCaption,
       Link.configure({
